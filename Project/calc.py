@@ -15,7 +15,7 @@ import models.yolo
 
 
 def squat_calc(pose_model: models.yolo.Model, angle_max: int = 150, angle_min: int = 30, threshold: int = 35) -> None:
-    
+
     count=0
     cap= cv2.VideoCapture(0)
     if not cap.isOpened():
@@ -33,21 +33,21 @@ def squat_calc(pose_model: models.yolo.Model, angle_max: int = 150, angle_min: i
     while True:
         count+=1
         s, frame = cap.read()
-        
+
         if not s:
             print("No Frame")
             break
-            
+
         if count in range(1,100):
                 continue
 
         frame = cv2.flip(frame, 1)
         pose_output=None
         frame, pose_output = process_frame_and_annotate(pose_model, frame, True)
-    
+
         #upper body relative to thighs
         upper_body = calculate_angle(pose_output, *[1,2,3], True, frame)
-        
+
         #knee angle
         legs = calculate_angle(pose_output, *[4,5,6], True, frame)
 
@@ -59,13 +59,13 @@ def squat_calc(pose_model: models.yolo.Model, angle_max: int = 150, angle_min: i
             if legs < angle_min and stage == 'up': #elbow less than 30
                 stage = 'down'
                 counter += 1
-                
+
         else:
             stage = "skipped"
             cv2.putText(frame, "Change back position", (50, 150), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 225), 3,
                         cv2.LINE_AA)
 
-        
+
 
         # Annotation for Stage and Reps
         cv2.putText(frame, f"Stage: {stage}", (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 2, (225, 225, 225), 3,
@@ -73,8 +73,8 @@ def squat_calc(pose_model: models.yolo.Model, angle_max: int = 150, angle_min: i
         cv2.putText(frame, f"Reps: {str(counter)}", (50, 100), cv2.FONT_HERSHEY_SIMPLEX, 2,
                     (225, 225, 225), 3, cv2.LINE_AA)
 
-        
-        
+
+
         cv2.imshow('camera', frame)
         if cv2.waitKey(1) == ord('q'):
             break
@@ -85,7 +85,7 @@ def squat_calc(pose_model: models.yolo.Model, angle_max: int = 150, angle_min: i
 
 
 def curl_calc(pose_model: models.yolo.Model, angle_max: int = 150, angle_min: int = 30, threshold: int = 35) -> None:
-    
+
     count=0
     cap= cv2.VideoCapture(0)
     if not cap.isOpened():
@@ -103,18 +103,18 @@ def curl_calc(pose_model: models.yolo.Model, angle_max: int = 150, angle_min: in
     while True:
         count+=1
         s, frame = cap.read()
-        
+
         if not s:
             print("No Frame")
             break
-            
+
         if count in range(1,100):
                 continue
 
         frame = cv2.flip(frame, 1)
         pose_output=None
         frame, pose_output = process_frame_and_annotate(pose_model, frame, True)
-    
+
         #elbow angle
         left_elbow = calculate_angle(pose_output, *[6, 8, 10], True, frame)
         right_elbow = calculate_angle(pose_output, *[5, 7, 9], True, frame)
@@ -146,13 +146,92 @@ def curl_calc(pose_model: models.yolo.Model, angle_max: int = 150, angle_min: in
                         cv2.LINE_AA)
 
         # Annotation for Stage and Reps
-        cv2.putText(frame, f"Stage: {stage}", (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 2, (225, 225, 225), 3,
+        cv2.putText(frame, f"Direction: {stage}", (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 2, (225, 225, 225), 3,
                     cv2.LINE_AA)
         cv2.putText(frame, f"Reps: {str(counter)}", (50, 100), cv2.FONT_HERSHEY_SIMPLEX, 2,
                     (225, 225, 225), 3, cv2.LINE_AA)
 
-        
-        
+
+
+        cv2.imshow('camera', frame)
+        if cv2.waitKey(1) == ord('q'):
+            break
+    cap.release()
+    cv2.destroyAllWindows()
+
+
+def shoulderPress(pose_model: models.yolo.Model, angle_max: int =135 , angle_min: int = 70, threshold: int = 85) -> None:
+
+    count=0
+    cap= cv2.VideoCapture(0)
+    if not cap.isOpened():
+        print("No Camera")
+        exit()
+
+    cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
+    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
+
+    stage = None
+    counter = 0
+    '''
+    stage_right = None
+    counter_right = 0'''
+    while True:
+        count+=1
+        s, frame = cap.read()
+
+        if not s:
+            print("No Frame")
+            break
+
+        if count in range(1,100):
+                continue
+
+        frame = cv2.flip(frame, 1)
+        pose_output=None
+        frame, pose_output = process_frame_and_annotate(pose_model, frame, True)
+
+        #elbow angle
+        left_elbow = calculate_angle(pose_output, *[6, 8, 10], True, frame)
+        right_elbow = calculate_angle(pose_output, *[5, 7, 9], True, frame)
+
+        # shoulder angle
+        left_shoulder = calculate_angle(pose_output, *[12, 6, 8], True, frame, 2, threshold)
+        right_shoulder = calculate_angle(pose_output, *[11, 5, 7], True, frame, 2, threshold)
+
+        if left_shoulder > threshold:
+            if left_elbow > angle_max:
+                stage = 'down'
+
+            if left_elbow < angle_min and stage == 'down':
+                stage = 'up'
+                counter += 1
+
+        else:
+            stage = "skippped"
+            cv2.putText(frame, "Lift your left shoulder", (50, 150), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 225), 3,
+                        cv2.LINE_AA)
+
+        if right_shoulder > threshold:
+            if right_elbow > angle_max:
+                stage = 'down'
+
+            if right_elbow < angle_min and stage == 'down':
+                stage = 'up'
+                counter += 1
+        else:
+            stage = "skipped"
+            cv2.putText(frame, "Lift your right shoulder", (50, 200), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 225), 3,
+                        cv2.LINE_AA)
+
+        # Annotation for Stage and Reps
+        cv2.putText(frame, f"Direction: {stage}", (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 2, (225, 225, 225), 3,
+                    cv2.LINE_AA)
+        cv2.putText(frame, f"Reps: {str(counter)}", (50, 100), cv2.FONT_HERSHEY_SIMPLEX, 2,
+                    (225, 225, 225), 3, cv2.LINE_AA)
+
+
+
         cv2.imshow('camera', frame)
         if cv2.waitKey(1) == ord('q'):
             break
@@ -274,7 +353,7 @@ def calculate_angle(pose_out: np.ndarray, a: int, b: int, c: int, draw: bool = F
     bc = c - b
 
     cosine_angle = np.dot(ba, bc) / (np.linalg.norm(ba) * np.linalg.norm(bc))
-    angle = np.arccos(cosine_angel)
+    angle = np.arccos(cosine_angle)
     angle = np.degrees(angle)
     if angle > 180:
         angle = 360 - angle
@@ -293,3 +372,4 @@ def calculate_angle(pose_out: np.ndarray, a: int, b: int, c: int, draw: bool = F
             cv2.putText(frame, str(int(angle)), elbow, cv2.FONT_HERSHEY_SIMPLEX, size, (225, 225, 225), 3, cv2.LINE_AA)
 
     return angle
+

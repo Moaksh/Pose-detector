@@ -1,6 +1,6 @@
 from pathlib import Path
 import torch
-from calc import curl_calc
+from calc import shoulderPress, curl_calc
 
 device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
@@ -15,4 +15,5 @@ if torch.cuda.is_available():
 
 print(f"Loaded model {MODEL_PATH}")
 
-curl_calc(pose_model, angle_max=150, angle_min=30, threshold=35)
+# shoulderPress(pose_model, angle_max=135, angle_min=70, threshold=85)
+curl_calc(pose_model)
